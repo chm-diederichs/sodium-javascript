@@ -1691,6 +1691,12 @@ function crypto_sign_verify_detached (sig, m, pk) {
   return crypto_sign_open(m, sm, pk)
 }
 
+function crypto_sign_ed25519_sk_to_pk (pk, sk) {
+  check(pk, crypto_sign_ed25519_PUBLICKEYBYTES)
+  pk.set(sk.subarray(crypto_sign_ed25519_SEEDBYTES))
+  return pk
+}
+
 function crypto_secretbox_detached (o, mac, msg, n, k) {
   check(mac, sodium.crypto_secretbox_MACBYTES)
   var tmp = new Uint8Array(msg.length + mac.length)
