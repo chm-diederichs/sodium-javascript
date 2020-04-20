@@ -1804,19 +1804,19 @@ var crypto_secretbox_KEYBYTES = 32,
     crypto_box_SEALBYTES = 48,
     crypto_box_BEFORENMBYTES = 32,
     crypto_sign_BYTES = 64,
-    crypto_sign_PUBLICKEYBYTES = 32,
-    crypto_sign_SECRETKEYBYTES = 64,
-    crypto_sign_SEEDBYTES = 32,
-    crypto_hash_BYTES = 64;
+    crypto_sign_ed25519_PUBLICKEYBYTES = 32,
+    crypto_sign_ed25519_SECRETKEYBYTES = 64,
+    crypto_sign_ed25519_SEEDBYTES = 32,
+    crypto_hash_ed25519_BYTES = 64;
 
 sodium.memzero = function (len, offset) {
   for (var i = offset; i < len; i++) arr[i] = 0;
 }
 
-sodium.crypto_sign_BYTES = crypto_sign_BYTES
-sodium.crypto_sign_PUBLICKEYBYTES = crypto_sign_PUBLICKEYBYTES
-sodium.crypto_sign_SECRETKEYBYTES = crypto_sign_SECRETKEYBYTES
-sodium.crypto_sign_SEEDBYTES = crypto_sign_SEEDBYTES
+sodium.crypto_sign_BYTES = crypto_sign_ed25519_BYTES
+sodium.crypto_sign_PUBLICKEYBYTES = crypto_sign_ed25519_PUBLICKEYBYTES
+sodium.crypto_sign_SECRETKEYBYTES = crypto_sign_ed25519_SECRETKEYBYTES
+sodium.crypto_sign_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES
 sodium.crypto_sign_keypair = crypto_sign_keypair
 sodium.crypto_sign_seed_keypair = crypto_sign_seed_keypair
 sodium.crypto_sign = crypto_sign
@@ -1850,6 +1850,11 @@ sodium.crypto_box_BEFORENMBYTES = crypto_box_BEFORENMBYTES
 sodium.crypto_box_keypair = crypto_box_keypair
 sodium.crypto_box_seal = crypto_box_seal
 sodium.crypto_box_seal_open = crypto_box_seal_open
+
+sodium.crypto_sign_ed25519_BYTES = crypto_sign_ed25519_BYTES
+sodium.crypto_sign_ed25519_PUBLICKEYBYTES = crypto_sign_ed25519_PUBLICKEYBYTES
+sodium.crypto_sign_ed25519_SECRETKEYBYTES = crypto_sign_ed25519_SECRETKEYBYTES
+sodium.crypto_sign_ed25519_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES
 
 sodium.sodium_malloc = function (n) {
   return new Uint8Array(n)
