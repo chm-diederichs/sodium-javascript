@@ -19,6 +19,20 @@ var gf = function(init) {
   return r;
 };
 
+// projective
+var ge2 = function(init) {
+  var r = new Array(4)
+  for (let i = 0; i < 3; i++) r[i] = gf()
+  return r;
+};
+
+// extended
+var ge3 = function(init) {
+  var r = new Array(4)
+  for (let i = 0; i < 4; i++) r[i] = gf()
+  return r;
+};
+
 // also forwarded at the bottom but randombytes is non-enumerable
 var randombytes = require('./randombytes').randombytes
 
