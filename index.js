@@ -1697,6 +1697,22 @@ function crypto_sign_ed25519_sk_to_pk (pk, sk) {
   return pk
 }
 
+function crypto_sign_ed25519_sk_to_curve25519 (curveSk, edSk) {
+  check(curveSk, crypto_sign_SECRETKEYBYTES)
+  check(edSk, crypto_sign_ed25519_SECRETKEYBYTES)
+
+  var h = Buffer.alloc(crypto_hash_sha512_BYTES);
+  crypto_hash(h, edSk, 32)
+
+  h[0] &= 248;
+  h[31] &= 127;
+  h[31] |= 64;
+
+  curveSk.set(edSk)
+  h.fill(0)
+  return curveSk
+}
+
 function crypto_secretbox_detached (o, mac, msg, n, k) {
   check(mac, sodium.crypto_secretbox_MACBYTES)
   var tmp = new Uint8Array(msg.length + mac.length)
