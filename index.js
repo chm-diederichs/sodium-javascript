@@ -1642,6 +1642,38 @@ function add(p, q) {
   M(p[3], e, h);
 }
 
+function ls_add (r, p, q) {
+  var t0 = gf()
+
+  A(r[0], p[1], p[0])
+  Z(r[1], p[1], p[0])
+  M(r[2], r[0], q[0])
+  M(r[1], r[1], q[1])
+  M(r[3], q[3], p[3])
+  M(r[0], p[2], q[2])
+  A(t0, r[0], r[0])
+  Z(r[0], r[2], r[1])
+  A(r[1], r[2], r[1])
+  A(r[2], t0, r[3])
+  Z(r[3], t0, r[3])
+}
+
+function sub (r, p, q) {
+  var t0 = gf()
+
+  A(r[0], p[1], p[0])
+  Z(r[1], p[1], p[0])
+  M(r[2], r[0], q[1])
+  M(r[1], r[1], q[0])
+  M(r[3], q[3], p[3])
+  M(r[0], p[2], q[2])
+  A(t0, r[0], r[0])
+  Z(r[0], r[2], r[1])
+  A(r[1], r[2], r[1])
+  Z(r[2], t0, r[3])
+  A(r[3], t0, r[3])
+}
+
 function cswap(p, q, b) {
   var i;
   for (i = 0; i < 4; i++) {
