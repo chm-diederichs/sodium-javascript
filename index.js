@@ -983,6 +983,11 @@ function S(o, a) {
   M(o, a, a);
 }
 
+function S2 (o, a) {
+  S(o, a)
+  M(o, o, gf([2]))
+}
+
 function inv25519(o, i) {
   var c = gf();
   var a;
@@ -1063,6 +1068,95 @@ function crypto_scalarmult(q, n, p) {
 
 function crypto_scalarmult_base(q, n) {
   return crypto_scalarmult(q, n, _9);
+}
+
+function mulL (r, A) {
+  var aslide = [13, 0, 0, 0, 0, -1, 0, 0, 0, 0, -11, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, -3, 0, 0, 0, 0, -13, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, -13, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, -13, 0, 0, 0, 0, 0, 0, -3, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 3, 0, 0, 0, 0, -11, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 7, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+  var Ai = []
+  for (let i = 0; i < 8; i++) Ai[i] = ge3()
+
+  var t = ge3(), u = ge3(), A2 = ge3()
+
+  p3_to_cached(Ai[0], A)
+  p3_dbl(t, A)
+  p1p1_to_p3(A2, t)
+  ls_add(t, A2, Ai[0])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[1], u)
+  ls_add(t, A2, Ai[1])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[2], u)
+  ls_add(t, A2, Ai[2])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[3], u)
+  ls_add(t, A2, Ai[3])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[4], u)
+  ls_add(t, A2, Ai[4])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[5], u)
+  ls_add(t, A2, Ai[5])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[6], u)
+  ls_add(t, A2, Ai[6])
+  p1p1_to_p3(u, t)
+  p3_to_cached(Ai[7], u)
+
+  r = gf0
+
+  for (let i = 252; i >= 0; i--) {
+    p3_dbl(t, r)
+
+    if (aslide[i] > 0) {
+      p1p1_to_p3(u, t)
+      ls_add(t, u, Ai[intDivide(aslide[i], 2)])
+    } else if (aslide[i] < 0) {
+      p1p1_to_p3(u, t)
+      sub(t, u, Ai[-intDivide(aslide[i], 2)])
+    }
+
+    p1p1_to_p3(r, t)
+  }
+}
+
+function p3_to_cached (r, g) {
+  r[0] = A(g[1], g[0])
+  r[1] = Z(g[1], g[0])
+  r[2] = g[2]
+  r[3] = M(g[3], D2)
+}
+
+function p3_to_p2 (r, p) {
+  r[0] = p[0]
+  r[1] = p[1]
+  r[2] = p[2]
+}
+
+function p1p1_to_p3 (r, p) {
+  M(r[0], p[0], p[3])
+  M(r[1], p[1], p[2])
+  M(r[2], p[2], p[3])
+  M(r[3], p[0], p[1])
+}
+
+function p3_dbl (r, p) {
+  var q = ge_p2()
+  p3_to_p2(q, p)
+  p2_dbl(r, q)
+}
+
+function p2_dbl (r, p) {
+  var t0 = gf()
+
+  S(r[0], p[0])
+  S(r[2], p[1])
+  S2(r[3], p[2])
+  A(r[1], p[0], p[1])
+  S(t0, r[1])
+  A(r[1], r[2], r[0])
+  Z(r[2], r[2], r[0])
+  Z(r[0], t0, r[1])
+  Z(r[3], r[3], r[2])
 }
 
 var K = [
