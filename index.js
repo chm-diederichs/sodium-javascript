@@ -2066,11 +2066,14 @@ var crypto_secretbox_KEYBYTES = 32,
     crypto_box_BOXZEROBYTES = crypto_secretbox_BOXZEROBYTES,
     crypto_box_SEALBYTES = 48,
     crypto_box_BEFORENMBYTES = 32,
-    crypto_sign_BYTES = 64,
     crypto_sign_ed25519_PUBLICKEYBYTES = 32,
     crypto_sign_ed25519_SECRETKEYBYTES = 64,
     crypto_sign_ed25519_SEEDBYTES = 32,
-    crypto_sign_ed25519_BYTES = 64;
+    crypto_sign_ed25519_BYTES = 64,
+    crypto_sign_BYTES = crypto_sign_ed25519_BYTES,
+    crypto_sign_PUBLICKEYBYTES = crypto_sign_ed25519_PUBLICKEYBYTES,
+    crypto_sign_SECRETKEYBYTES = crypto_sign_ed25519_SECRETKEYBYTES,
+    crypto_sign_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES;
 
 sodium.memzero = function (len, offset) {
   for (var i = offset; i < len; i++) arr[i] = 0;
