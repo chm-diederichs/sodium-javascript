@@ -2065,3 +2065,7 @@ function forward (submodule) {
     module.exports[prop] = submodule[prop]
   })
 }
+
+function intDivide (a, b) {
+  return (a / b) - (a / b) % 1
+}
