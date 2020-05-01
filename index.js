@@ -1159,6 +1159,19 @@ function p2_dbl (r, p) {
   Z(r[3], r[3], r[2])
 }
 
+function is_on_main_subgroup (p) {
+  var pl = ge3()
+
+  mulL(pl, p)
+
+  var zero = 0
+  for (let i = 0; i < 16; i++) {
+    zero |= (pl[0][i] & 0xffff)
+  }
+
+  return zero === 0
+}
+
 var K = [
   0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
   0xb5c0fbcf, 0xec4d3b2f, 0xe9b5dba5, 0x8189dbbc,
@@ -1881,6 +1894,32 @@ function crypto_sign_ed25519_sk_to_curve25519 (curveSk, edSk) {
   curveSk.set(edSk)
   h.fill(0)
   return curveSk
+}
+
+function crypto_sign_ed25519_pk_to_curve25519 (x25519_pk, ed25519_pk) {
+  check(x25519_pk, crypto_sign_PUBLICKEYBYTES)
+  check(ed25519_pk, crypto_sign_ed25519_PUBLICKEYBYTES)
+
+  // TODO load pk into internal representation
+  var A = ge3()
+  var x = gf()
+  var one_minus_y = gf()
+
+  if (isSmallOrder(ed25519_pk) !== 0 ||
+      unpackneg(A, ed25519_pk) !== 0 ||
+      is_on_main_subgroup(A)   !==0) {
+      return -1
+  }
+
+  one_minus_y = gf1
+  Z(one_minus_y, one_minus_y, A[1])
+  x = 1
+  A(x, x, A[1])
+  inv25519(one_minus_y, one_minus_y)
+  M(x, x, one_minus_y)
+  pack25519(x25519_pk, x)
+
+  return 0
 }
 
 function crypto_secretbox_detached (o, mac, msg, n, k) {
