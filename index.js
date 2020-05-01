@@ -1692,8 +1692,8 @@ function crypto_sign_verify_detached (sig, m, pk) {
 }
 
 function crypto_sign_ed25519_sk_to_pk (pk, sk) {
-  check(pk, crypto_sign_ed25519_PUBLICKEYBYTES)
-  pk.set(sk.subarray(crypto_sign_ed25519_SEEDBYTES))
+  check(pk, crypto_sign_ed25519_PUBLICKEYBYTES);
+  pk.set(sk.subarray(crypto_sign_ed25519_SEEDBYTES));
   return pk
 }
 
@@ -1813,7 +1813,7 @@ var crypto_secretbox_KEYBYTES = 32,
     crypto_sign_ed25519_PUBLICKEYBYTES = 32,
     crypto_sign_ed25519_SECRETKEYBYTES = 64,
     crypto_sign_ed25519_SEEDBYTES = 32,
-    crypto_hash_ed25519_BYTES = 64;
+    crypto_sign_ed25519_BYTES = 64;
 
 sodium.memzero = function (len, offset) {
   for (var i = offset; i < len; i++) arr[i] = 0;
