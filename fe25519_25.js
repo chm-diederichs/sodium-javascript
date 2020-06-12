@@ -16,6 +16,8 @@ const wasm = require('./fe25519_25/mult.js')({
 
 module.exports = {
   fe25519_reduce,
+  fe25519_frombytes,
+  fe25519_tobytes,
   fe25519_add,
   fe25519_sub,
   fe25519_neg,
@@ -35,7 +37,26 @@ module.exports = {
   fe25519_sqrt,
   ge25519_add,
   ge25519_has_small_order,
-  sc25519_mul
+  sc25519_mul,
+  sc25519_muladd,
+  sc25519_sq,
+  sc25519_sqmul,
+  sc25519_invert,
+  sc25519_reduce,
+  sc25519_is_canonical,
+  chi25519,
+  ge25519_mont_to_ed,
+  ge25519_xmont_to_ymont,
+  ge25519_clear_cofactor,
+  ge25519_elligator2,
+  ge25519_from_uniform,
+  ge25519_from_hash,
+  ristretto255_sqrt_ratio_m1,
+  ristretto255_is_canonical,
+  ristretto255_frombytes,
+  ristretto255_p3_tobytes,
+  ristretto255_elligator,
+  ristretto255_from_hash
 }
 
 const ed25519_d = fe25519([
@@ -62,16 +83,24 @@ function fe25519 (arr) {
 }
 
 // projective
-var ge2 = function(init) {
+var ge2 = function( init) {
   var r = new Array(3)
-  for (let i = 0; i < 3; i++) r[i] = fe25519()
+  let inlen = init ? init.length : 0
+
+  for (let i = 0; i < inlen; i++) r[i] = fe25519(init[i])
+  for (let i = inlen; i < 3; i++) r[i] = fe25519()
+
   return r;
 };
 
 // extended
-module.exports.ge3 = ge3 = function(init) {
+module.exports.ge3 = ge3 = function (init) {
   var r = new Array(4)
-  for (let i = 0; i < 4; i++) r[i] = fe25519()
+  let inlen = init ? init.length : 0
+
+  for (let i = 0; i < inlen; i++) r[i] = fe25519(init[i])
+  for (let i = inlen; i < 4; i++) r[i] = fe25519()
+
   return r;
 };
 
@@ -88,6 +117,7 @@ function load_3 (s, o) {
 }
 
 function load_4 (s, o) {
+  if (!o) o = 0
   var result
 
   result = s[o]
@@ -95,7 +125,9 @@ function load_4 (s, o) {
   result |= s[o + 2] << 16
   result |= s[o + 3] << 24
 
-  return result
+  // result |= (0x100000000 + s[o + 3] << 24) & 0xfffffff
+
+  return (0x100000000 + result) % 2 ** 32
 }
 
 function fe25519_reduce (h, f) {
@@ -220,6 +252,19 @@ function fe25519_frombytes (h, s) {
   var h7 = load_3(s, 23) << 5;
   var h8 = load_3(s, 26) << 4;
   var h9 = (load_3(s, 29) & 8388607) << 2;
+
+  console.log([s[0], s[1], s[2], s[3]].map(a => a.toString(16)))
+
+  console.log(h0.toString(16).padStart(8, '0'))
+  console.log(h1.toString(16).padStart(8, '0'))
+  console.log(h2.toString(16).padStart(8, '0'))
+  console.log(h3.toString(16).padStart(8, '0'))
+  console.log(h4.toString(16).padStart(8, '0'))
+  console.log(h5.toString(16).padStart(8, '0'))
+  console.log(h6.toString(16).padStart(8, '0'))
+  console.log(h7.toString(16).padStart(8, '0'))
+  console.log(h8.toString(16).padStart(8, '0'))
+  console.log(h9.toString(16).padStart(8, '0'))
 
   var carry0;
   var carry1;
@@ -381,7 +426,6 @@ function fe25519_neg (h, f) {
  */
 
 function fe25519_cmov (f, g, b) {
-  check_fe(h)
   check_fe(f)
   check_fe(g)
 
@@ -767,6 +811,8 @@ function fe25519_unchecked_sqrt(x, x2) {
   fe25519_sq(m_root2, m_root)
   fe25519_sub(e, x2, m_root2)
   fe25519_copy(x, p_root)
+  console.log(e)
+  console.log(fe25519_iszero(e))
   fe25519_cmov(x, m_root, fe25519_iszero(e))
 }
 
@@ -776,6 +822,7 @@ function fe25519_sqrt(x, x2) {
 
   fe25519_copy(x2_copy, x2)
   fe25519_unchecked_sqrt(x, x2)
+  console.log(x, 'sqrt')
   fe25519_sq(check, x)
   fe25519_sub(check, check, x2_copy)
 
@@ -1286,93 +1333,129 @@ function ge25519_tobytes (s, h) {
   s[31] ^= fe25519_isnegative(x) << 7;
 }
 
-// function ge25519_double_scalarmult_vartime (r, a, A, b) {
-//   check_ge2(r)
-//   check_ge3(p)
+function ge25519_double_scalarmult_vartime (r, a, A, b) {
+  check_ge2(r)
+  check_ge3(p)
 
-//   static const ge25519_precomp Bi[8] = {
-// // #ifdef HAVE_TI_MODE
-// // # include "fe_51/base2.h"
-// // #else
-// // # include "fe_25_5/base2.h"
-// // #endif
-//   };
-//   var aslide = new Int8Array(256)
-//   var bslide = new Int8Array(256)
+  var Bi = [
+    ge3([
+      [ 25967493, -14356035, 29566456, 3660896, -12694345, 4014787, 27544626, -11754271, -6079156, 2047605 ],
+      [ -12545711, 934262, -2722910, 3049990, -727428, 9406986, 12720692, 5043384, 19500929, -15469378 ],
+      [ -8738181, 4489570, 9688441, -14785194, 10184609, -12363380, 29287919, 11864899, -24514362, -4438546 ]
+    ]),
+    ge3([
+      [ 15636291, -9688557, 24204773, -7912398, 616977, -16685262, 27787600, -14772189, 28944400, -1550024 ],
+      [ 16568933, 4717097, -11556148, -1102322, 15682896, -11807043, 16354577, -11775962, 7689662, 11199574 ],
+      [ 30464156, -5976125, -11779434, -15670865, 23220365, 15915852, 7512774, 10017326, -17749093, -9920357 ]
+    ]),
+    ge3([
+      [ 10861363, 11473154, 27284546, 1981175, -30064349, 12577861, 32867885, 14515107, -15438304, 10819380 ],
+      [ 4708026, 6336745, 20377586, 9066809, -11272109, 6594696, -25653668, 12483688, -12668491, 5581306 ],
+      [ 19563160, 16186464, -29386857, 4097519, 10237984, -4348115, 28542350, 13850243, -23678021, -15815942 ]
+    ]),
+    ge3([
+      [ 5153746, 9909285, 1723747, -2777874, 30523605, 5516873, 19480852, 5230134, -23952439, -15175766 ],
+      [ -30269007, -3463509, 7665486, 10083793, 28475525, 1649722, 20654025, 16520125, 30598449, 7715701 ],
+      [ 28881845, 14381568, 9657904, 3680757, -20181635, 7843316, -31400660, 1370708, 29794553, -1409300 ]
+    ]),
+    ge3([
+      [ -22518993, -6692182, 14201702, -8745502, -23510406, 8844726, 18474211, -1361450, -13062696, 13821877 ],
+      [ -6455177, -7839871, 3374702, -4740862, -27098617, -10571707, 31655028, -7212327, 18853322, -14220951 ],
+      [ 4566830, -12963868, -28974889, -12240689, -7602672, -2830569, -8514358, -10431137, 2207753, -3209784 ]
+    ]),
+    ge3([
+      [ -25154831, -4185821, 29681144, 7868801, -6854661, -9423865, -12437364, -663000, -31111463, -16132436 ],
+      [ 25576264, -2703214, 7349804, -11814844, 16472782, 9300885, 3844789, 15725684, 171356, 6466918 ],
+      [ 23103977, 13316479, 9739013, -16149481, 817875, -15038942, 8965339, -14088058, -30714912, 16193877 ]
+    ]),
+    ge3([
+      [ -33521811, 3180713, -2394130, 14003687, -16903474, -16270840, 17238398, 4729455, -18074513, 9256800 ],
+      [ -25182317, -4174131, 32336398, 5036987, -21236817, 11360617, 22616405, 9761698, -19827198, 630305 ],
+      [ -13720693, 2639453, -24237460, -7406481, 9494427, -5774029, -6554551, -15960994, -2449256, -14291300 ]
+    ]),
+    ge3([
+      [ -3151181, -5046075, 9282714, 6866145, -31907062, -863023, -18940575, 15033784, 25105118, -7894876 ],
+      [ -24326370, 15950226, -31801215, -14592823, -11662737, -5090925, 1573892, -2625887, 2198790, -15804619 ],
+      [ -3099351, 10324967, -2241613, 7453183, -5446979, -2735503, -13812022, -16236442, -32461234, -12290683 ]
+    ])
+  ]
 
-//   var Ai = new Array(8); /* A,3A,5A,7A,9A,11A,13A,15A */
-//   for (let i = 0; i < 8; i++) Ai[i] = ge3()
-//   var t = ge3()
-//   var u = ge3()
-//   var A2 = ge3()
-//   let i
+  var aslide = new Int8Array(256)
+  var bslide = new Int8Array(256)
 
-//   slide_vartime(aslide, a)
-//   slide_vartime(bslide, b)
+  var Ai = new Array(8); /* A,3A,5A,7A,9A,11A,13A,15A */
+  for (let i = 0; i < 8; i++) Ai[i] = ge3()
+  var t = ge3()
+  var u = ge3()
+  var A2 = ge3()
+  let i
 
-//   ge25519_p3_to_cached(Ai[0], A);
+  slide_vartime(aslide, a)
+  slide_vartime(bslide, b)
 
-//   ge25519_p3_dbl(t, A);
-//   ge25519_p1p1_to_p3(A2, t);
+  ge25519_p3_to_cached(Ai[0], A);
 
-//   ge25519_add(t, A2, Ai[0]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[1], u);
+  ge25519_p3_dbl(t, A);
+  ge25519_p1p1_to_p3(A2, t);
 
-//   ge25519_add(t, A2, Ai[1]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[2], u);
+  ge25519_add(t, A2, Ai[0]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[1], u);
 
-//   ge25519_add(t, A2, Ai[2]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[3], u);
+  ge25519_add(t, A2, Ai[1]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[2], u);
 
-//   ge25519_add(t, A2, Ai[3]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[4], u);
+  ge25519_add(t, A2, Ai[2]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[3], u);
 
-//   ge25519_add(t, A2, Ai[4]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[5], u);
+  ge25519_add(t, A2, Ai[3]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[4], u);
 
-//   ge25519_add(t, A2, Ai[5]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[6], u);
+  ge25519_add(t, A2, Ai[4]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[5], u);
 
-//   ge25519_add(t, A2, Ai[6]);
-//   ge25519_p1p1_to_p3(u, t);
-//   ge25519_p3_to_cached(Ai[7], u);
+  ge25519_add(t, A2, Ai[5]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[6], u);
 
-//   ge25519_p2_0(r);
+  ge25519_add(t, A2, Ai[6]);
+  ge25519_p1p1_to_p3(u, t);
+  ge25519_p3_to_cached(Ai[7], u);
 
-//   for (i = 255; i >= 0; --i) {
-//     if (aslide[i] || bslide[i]) {
-//       break;
-//     }
-//   }
+  ge25519_p2_0(r);
 
-//   for (; i >= 0; --i) {
-//     ge25519_p2_dbl(t, r);
+  for (i = 255; i >= 0; --i) {
+    if (aslide[i] || bslide[i]) {
+      break;
+    }
+  }
 
-//     if (aslide[i] > 0) {
-//       ge25519_p1p1_to_p3(u, t);
-//       ge25519_add(t, u, Ai[intDivide(aslide[i], 2)]);
-//     } else if (aslide[i] < 0) {
-//       ge25519_p1p1_to_p3(u, t);
-//       ge25519_sub(t, u, Ai[-intDivide(aslide[i], 2)]);
-//     }
+  for (; i >= 0; --i) {
+    ge25519_p2_dbl(t, r);
 
-//     if (bslide[i] > 0) {
-//       ge25519_p1p1_to_p3(u, t);
-//       ge25519_madd(t, u, Bi[intDivide(bslide[i], 2)]);
-//     } else if (bslide[i] < 0) {
-//       ge25519_p1p1_to_p3(u, t);
-//       ge25519_msub(t, u, Bi[-intDivide(bslide[i], 2)]);
-//     }
+    if (aslide[i] > 0) {
+      ge25519_p1p1_to_p3(u, t);
+      ge25519_add(t, u, Ai[intDivide(aslide[i], 2)]);
+    } else if (aslide[i] < 0) {
+      ge25519_p1p1_to_p3(u, t);
+      ge25519_sub(t, u, Ai[-intDivide(aslide[i], 2)]);
+    }
 
-//     ge25519_p1p1_to_p2(r, t);
-//   }
-// }
+    if (bslide[i] > 0) {
+      ge25519_p1p1_to_p3(u, t);
+      ge25519_madd(t, u, Bi[intDivide(bslide[i], 2)]);
+    } else if (bslide[i] < 0) {
+      ge25519_p1p1_to_p3(u, t);
+      ge25519_msub(t, u, Bi[-intDivide(bslide[i], 2)]);
+    }
+
+    ge25519_p1p1_to_p2(r, t);
+  }
+}
 
 /*
  h = a * p
@@ -1712,34 +1795,33 @@ function sc25519_mul (s, a, b) {
   var _b = new Uint32Array(12)
 
   _a[0]  = 2097151 & load_3(a);
-  _a[1]  = 2097151 & (load_4(a, 2) >> 5);
-  _a[2]  = 2097151 & (load_3(a, 5) >> 2);
-  _a[3]  = 2097151 & (load_4(a, 7) >> 7);
-  _a[4]  = 2097151 & (load_4(a, 10) >> 4);
-  _a[5]  = 2097151 & (load_3(a, 13) >> 1);
-  _a[6]  = 2097151 & (load_4(a, 15) >> 6);
-  _a[7]  = 2097151 & (load_3(a, 18) >> 3);
+  _a[1]  = 2097151 & (load_4(a, 2) >>> 5);
+  _a[2]  = 2097151 & (load_3(a, 5) >>> 2);
+  _a[3]  = 2097151 & (load_4(a, 7) >>> 7);
+  _a[4]  = 2097151 & (load_4(a, 10) >>> 4);
+  _a[5]  = 2097151 & (load_3(a, 13) >>> 1);
+  _a[6]  = 2097151 & (load_4(a, 15) >>> 6);
+  _a[7]  = 2097151 & (load_3(a, 18) >>> 3);
   _a[8]  = 2097151 & load_3(a, 21);
-  _a[9]  = 2097151 & (load_4(a, 23) >> 5);
-  _a[10] = 2097151 & (load_3(a, 26) >> 2);
-  _a[11] = (load_4(a, 28) >> 7);
+  _a[9]  = 2097151 & (load_4(a, 23) >>> 5);
+  _a[10] = 2097151 & (load_3(a, 26) >>> 2);
+  _a[11] = (load_4(a, 28) >>> 7);
 
   _b[0]  = 2097151 & load_3(b);
-  _b[1]  = 2097151 & (load_4(b, 2) >> 5);
-  _b[2]  = 2097151 & (load_3(b, 5) >> 2);
-  _b[3]  = 2097151 & (load_4(b, 7) >> 7);
-  _b[4]  = 2097151 & (load_4(b, 10) >> 4);
-  _b[5]  = 2097151 & (load_3(b, 13) >> 1);
-  _b[6]  = 2097151 & (load_4(b, 15) >> 6);
-  _b[7]  = 2097151 & (load_3(b, 18) >> 3);
+  _b[1]  = 2097151 & (load_4(b, 2) >>> 5);
+  _b[2]  = 2097151 & (load_3(b, 5) >>> 2);
+  _b[3]  = 2097151 & (load_4(b, 7) >>> 7);
+  _b[4]  = 2097151 & (load_4(b, 10) >>> 4);
+  _b[5]  = 2097151 & (load_3(b, 13) >>> 1);
+  _b[6]  = 2097151 & (load_4(b, 15) >>> 6);
+  _b[7]  = 2097151 & (load_3(b, 18) >>> 3);
   _b[8]  = 2097151 & load_3(b, 21);
-  _b[9]  = 2097151 & (load_4(b, 23) >> 5);
-  _b[10] = 2097151 & (load_3(b, 26) >> 2);
-  _b[11] = (load_4(b, 28) >> 7);
+  _b[9]  = 2097151 & (load_4(b, 23) >>> 5);
+  _b[10] = 2097151 & (load_3(b, 26) >>> 2);
+  _b[11] = (load_4(b, 28) >>> 7);
 
   let abuf = new Uint8Array(_a.buffer)
   let bbuf = new Uint8Array(_b.buffer)
-
 
   wasm.memory.set(abuf, 0)
   wasm.memory.set(bbuf, 48)
@@ -1747,6 +1829,732 @@ function sc25519_mul (s, a, b) {
   wasm.exports.sc25519_mul(96, 0, 48)
 
   s.set(wasm.memory.slice(96, 128))
+}
+
+function sc25519_muladd (s, a, b, c) {
+  assert(s instanceof Uint8Array && s.length === 32)
+  assert(a instanceof Uint8Array && a.length === 32)
+  assert(b instanceof Uint8Array && a.length === 32)
+  assert(c instanceof Uint8Array && a.length === 32)
+
+  var _a = new Uint32Array(12)
+  var _b = new Uint32Array(12)
+  var _c = new Uint32Array(12)
+
+  _a[0]  = 2097151 & load_3(a);
+  _a[1]  = 2097151 & (load_4(a, 2) >>> 5);
+  _a[2]  = 2097151 & (load_3(a, 5) >>> 2);
+  _a[3]  = 2097151 & (load_4(a, 7) >>> 7);
+  _a[4]  = 2097151 & (load_4(a, 10) >>> 4);
+  _a[5]  = 2097151 & (load_3(a, 13) >>> 1);
+  _a[6]  = 2097151 & (load_4(a, 15) >>> 6);
+  _a[7]  = 2097151 & (load_3(a, 18) >>> 3);
+  _a[8]  = 2097151 & load_3(a, 21);
+  _a[9]  = 2097151 & (load_4(a, 23) >>> 5);
+  _a[10] = 2097151 & (load_3(a, 26) >>> 2);
+  _a[11] = (load_4(a, 28) >>> 7);
+
+  _b[0]  = 2097151 & load_3(b);
+  _b[1]  = 2097151 & (load_4(b, 2) >>> 5);
+  _b[2]  = 2097151 & (load_3(b, 5) >>> 2);
+  _b[3]  = 2097151 & (load_4(b, 7) >>> 7);
+  _b[4]  = 2097151 & (load_4(b, 10) >>> 4);
+  _b[5]  = 2097151 & (load_3(b, 13) >>> 1);
+  _b[6]  = 2097151 & (load_4(b, 15) >>> 6);
+  _b[7]  = 2097151 & (load_3(b, 18) >>> 3);
+  _b[8]  = 2097151 & load_3(b, 21);
+  _b[9]  = 2097151 & (load_4(b, 23) >>> 5);
+  _b[10] = 2097151 & (load_3(b, 26) >>> 2);
+  _b[11] = (load_4(b, 28) >>> 7);
+
+  _c[0]  = 2097151 & load_3(c);
+  _c[1]  = 2097151 & (load_4(c, 2) >>> 5);
+  _c[2]  = 2097151 & (load_3(c, 5) >>> 2);
+  _c[3]  = 2097151 & (load_4(c, 7) >>> 7);
+  _c[4]  = 2097151 & (load_4(c, 10) >>> 4);
+  _c[5]  = 2097151 & (load_3(c, 13) >>> 1);
+  _c[6]  = 2097151 & (load_4(c, 15) >>> 6);
+  _c[7]  = 2097151 & (load_3(c, 18) >>> 3);
+  _c[8]  = 2097151 & load_3(c, 21);
+  _c[9]  = 2097151 & (load_4(c, 23) >>> 5);
+  _c[10] = 2097151 & (load_3(c, 26) >>> 2);
+  _c[11] = (load_4(c, 28) >>> 7);
+
+  let abuf = new Uint8Array(_a.buffer)
+  let bbuf = new Uint8Array(_b.buffer)
+  let cbuf = new Uint8Array(_c.buffer)
+
+  wasm.memory.set(abuf, 0)
+  wasm.memory.set(bbuf, 48)
+  wasm.memory.set(cbuf, 96)
+
+  wasm.exports.sc25519_muladd(144, 0, 48, 96)
+
+  s.set(wasm.memory.slice(144, 176))
+}
+
+/*
+ Input:
+ a[0]+256*a[1]+...+256^31*a[31] = a
+ *
+ Output:
+ s[0]+256*s[1]+...+256^31*s[31] = a^2 mod l
+ where l = 2^252 + 27742317777372353535851937790883648493.
+ */
+
+function sc25519_sq (s, a) {
+  assert(a instanceof Uint8Array && a.length === 32)
+  assert(s instanceof Uint8Array && s.length === 32)
+
+  sc25519_mul(s, a, a);
+}
+
+/*
+ Input:
+ s[0]+256*a[1]+...+256^31*a[31] = a
+ n
+ *
+ Output:
+ s[0]+256*s[1]+...+256^31*s[31] = x * s^(s^n) mod l
+ where l = 2^252 + 27742317777372353535851937790883648493.
+ Overwrites s in place.
+ */
+
+function sc25519_sqmul (s, n, a) {
+  assert(a instanceof Uint8Array && a.length === 32)
+  assert(s instanceof Uint8Array && s.length === 32)
+  assert(typeof n === 'number')
+
+  for (let i = 0; i < n; i++) {
+    sc25519_sq(s, s);
+  }
+  
+  sc25519_mul(s, s, a);
+}
+
+function sc25519_invert (recip, s) {
+  assert(recip instanceof Uint8Array && recip.length === 32)
+  assert(s instanceof Uint8Array && s.length === 32)
+
+  var _10 = Buffer.alloc(32)
+  var _100 = Buffer.alloc(32)
+  var _1000 = Buffer.alloc(32)
+  var _10000 = Buffer.alloc(32)
+  var _100000 = Buffer.alloc(32)
+  var _1000000 = Buffer.alloc(32)
+  var _10010011 = Buffer.alloc(32)
+  var _10010111 = Buffer.alloc(32)
+  var _100110 = Buffer.alloc(32)
+  var _1010 = Buffer.alloc(32)
+  var _1010000 = Buffer.alloc(32)
+  var _1010011 = Buffer.alloc(32)
+  var _1011 = Buffer.alloc(32)
+  var _10110 = Buffer.alloc(32)
+  var _10111101 = Buffer.alloc(32)
+  var _11 = Buffer.alloc(32)
+  var _1100011 = Buffer.alloc(32)
+  var _1100111 = Buffer.alloc(32)
+  var _11010011 = Buffer.alloc(32)
+  var _1101011 = Buffer.alloc(32)
+  var _11100111 = Buffer.alloc(32)
+  var _11101011 = Buffer.alloc(32)
+  var _11110101 = Buffer.alloc(32)
+
+  sc25519_sq(_10, s);
+  sc25519_mul(_11, s, _10);
+  sc25519_mul(_100, s, _11);
+  sc25519_sq(_1000, _100);
+  sc25519_mul(_1010, _10, _1000);
+  sc25519_mul(_1011, s, _1010);
+  sc25519_sq(_10000, _1000);
+  sc25519_sq(_10110, _1011);
+  sc25519_mul(_100000, _1010, _10110);
+  sc25519_mul(_100110, _10000, _10110);
+  sc25519_sq(_1000000, _100000);
+  sc25519_mul(_1010000, _10000, _1000000);
+  sc25519_mul(_1010011, _11, _1010000);
+  sc25519_mul(_1100011, _10000, _1010011);
+  sc25519_mul(_1100111, _100, _1100011);
+  sc25519_mul(_1101011, _100, _1100111);
+  sc25519_mul(_10010011, _1000000, _1010011);
+  sc25519_mul(_10010111, _100, _10010011);
+  sc25519_mul(_10111101, _100110, _10010111);
+  sc25519_mul(_11010011, _10110, _10111101);
+  sc25519_mul(_11100111, _1010000, _10010111);
+  sc25519_mul(_11101011, _100, _11100111);
+  sc25519_mul(_11110101, _1010, _11101011);
+
+  sc25519_mul(recip, _1011, _11110101);
+  sc25519_sqmul(recip, 126, _1010011);
+  sc25519_sqmul(recip, 9, _10);
+  sc25519_mul(recip, recip, _11110101);
+  sc25519_sqmul(recip, 7, _1100111);
+  sc25519_sqmul(recip, 9, _11110101);
+  sc25519_sqmul(recip, 11, _10111101);
+  sc25519_sqmul(recip, 8, _11100111);
+  sc25519_sqmul(recip, 9, _1101011);
+  sc25519_sqmul(recip, 6, _1011);
+  sc25519_sqmul(recip, 14, _10010011);
+  sc25519_sqmul(recip, 10, _1100011);
+  sc25519_sqmul(recip, 9, _10010111);
+  sc25519_sqmul(recip, 10, _11110101);
+  sc25519_sqmul(recip, 8, _11010011);
+  sc25519_sqmul(recip, 8, _11101011);
+}
+
+function sc25519_reduce (s) {
+  assert(s instanceof Uint8Array && s.length === 64)
+
+  var _s = new Uint32Array(24)
+
+  s[0]  = 2097151 & load_3(s);
+  s[1]  = 2097151 & (load_4(s, 2) >> 5);
+  s[2]  = 2097151 & (load_3(s, 5) >> 2);
+  s[3]  = 2097151 & (load_4(s, 7) >> 7);
+  s[4]  = 2097151 & (load_4(s, 10) >> 4);
+  s[5]  = 2097151 & (load_3(s, 13) >> 1);
+  s[6]  = 2097151 & (load_4(s, 15) >> 6);
+  s[7]  = 2097151 & (load_3(s, 18) >> 3);
+  s[8]  = 2097151 & load_3(s, 21);
+  s[9]  = 2097151 & (load_4(s, 23) >> 5);
+  s[10] = 2097151 & (load_3(s, 26) >> 2);
+  s[11] = 2097151 & (load_4(s, 28) >> 7);
+  s[12] = 2097151 & (load_4(s, 31) >> 4);
+  s[13] = 2097151 & (load_3(s, 34) >> 1);
+  s[14] = 2097151 & (load_4(s, 36) >> 6);
+  s[15] = 2097151 & (load_3(s, 39) >> 3);
+  s[16] = 2097151 & load_3(s, 42);
+  s[17] = 2097151 & (load_4(s, 44) >> 5);
+  s[18] = 2097151 & (load_3(s, 47) >> 2);
+  s[19] = 2097151 & (load_4(s, 49) >> 7);
+  s[20] = 2097151 & (load_4(s, 52) >> 4);
+  s[21] = 2097151 & (load_3(s, 55) >> 1);
+  s[22] = 2097151 & (load_4(s, 57) >> 6);
+  s[23] = (load_4(s + 60) >> 3);
+
+  var sbuf = Buffer.from(s.buffer)
+  wasm.memory.set(sbuf, 0)
+
+  s.fill(0)
+  s.set(wasm.memory.slice(0, 32))
+}
+
+function sc25519_is_canonical (s) {
+  /* 2^252+27742317777372353535851937790883648493 */
+  const L = Uint8Array.from([
+    0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+    0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10
+  ])
+
+  var c = 0
+  var n = 1
+  var i = 32
+
+  do {
+    i--
+    c |= ((s[i] - L[i]) >> 8) & n
+    n &= ((s[i] ^ L[i]) - 1) >> 8
+  } while (i !== 0)
+
+  return (c != 0)
+}
+
+/* x^((p-1)/2) */
+function chi25519 (out, z) {
+  check_fe(out)
+  check_fe(z)
+
+  var t0 = fe25519()
+  var t1 = fe25519()
+  var t2 = fe25519()
+  var t3 = fe25519()
+
+  fe25519_sq(t0, z);
+  fe25519_mul(t1, t0, z);
+  fe25519_sq(t0, t1);
+  fe25519_sq(t2, t0);
+  fe25519_sq(t2, t2);
+  fe25519_mul(t2, t2, t0);
+  fe25519_mul(t1, t2, z);
+  fe25519_sq(t2, t1);
+  for (let i = 1; i < 5; i++) {
+      fe25519_sq(t2, t2);
+  }
+  fe25519_mul(t1, t2, t1);
+  fe25519_sq(t2, t1);
+  for (let i = 1; i < 10; i++) {
+      fe25519_sq(t2, t2);
+  }
+  fe25519_mul(t2, t2, t1);
+  fe25519_sq(t3, t2);
+  for (let i = 1; i < 20; i++) {
+      fe25519_sq(t3, t3);
+  }
+  fe25519_mul(t2, t3, t2);
+  fe25519_sq(t2, t2);
+  for (let i = 1; i < 10; i++) {
+      fe25519_sq(t2, t2);
+  }
+  fe25519_mul(t1, t2, t1);
+  fe25519_sq(t2, t1);
+  for (let i = 1; i < 50; i++) {
+      fe25519_sq(t2, t2);
+  }
+  fe25519_mul(t2, t2, t1);
+  fe25519_sq(t3, t2);
+  for (let i = 1; i < 100; i++) {
+      fe25519_sq(t3, t3);
+  }
+  fe25519_mul(t2, t3, t2);
+  fe25519_sq(t2, t2);
+  for (let i = 1; i < 50; i++) {
+      fe25519_sq(t2, t2);
+  }
+  fe25519_mul(t1, t2, t1);
+  fe25519_sq(t1, t1);
+  for (let i = 1; i < 4; i++) {
+      fe25519_sq(t1, t1);
+  }
+  fe25519_mul(out, t1, t0);
+}
+
+/* montgomery to edwards */
+function ge25519_mont_to_ed (xed, yed, x, y) {
+  check_fe(xed)
+  check_fe(yed)
+  check_fe(x)
+  check_fe(y)
+
+  var one = fe25519()
+  var x_plus_one = fe25519()
+  var x_minus_one = fe25519()
+  var x_plus_one_y_inv = fe25519()
+
+  fe25519_1(one);
+  fe25519_add(x_plus_one, x, one);
+  fe25519_sub(x_minus_one, x, one);
+
+  /* xed = sqrt(-A-2)*x/y */
+  fe25519_mul(x_plus_one_y_inv, x_plus_one, y);
+  fe25519_invert(x_plus_one_y_inv, x_plus_one_y_inv); /* 1/((x+1)*y) */
+  fe25519_mul(xed, x, ed25519_sqrtam2);
+  fe25519_mul(xed, xed, x_plus_one_y_inv);            /* sqrt(-A-2)*x/((x+1)*y) */
+  fe25519_mul(xed, xed, x_plus_one);
+
+  /* yed = (x-1)/(x+1) */
+  fe25519_mul(yed, x_plus_one_y_inv, y);              /* 1/(x+1) */
+  fe25519_mul(yed, yed, x_minus_one);
+  fe25519_cmov(yed, one, fe25519_iszero(x_plus_one_y_inv));
+}
+
+/* montgomery -- recover y = sqrt(x^3 + A*x^2 + x) */
+function ge25519_xmont_to_ymont (y, x) {
+  var x2 = fe25519()
+  var x3 = fe25519()
+
+  fe25519_sq(x2, x);
+  fe25519_mul(x3, x, x2);
+  fe25519_mul32(x2, x2, ed25519_A_32);
+  fe25519_add(y, x3, x);
+  fe25519_add(y, y, x2);
+
+  return fe25519_sqrt(y, y);
+}
+
+/* multiply by the cofactor */
+function ge25519_clear_cofactor (p3) {
+  check_ge3(p3)
+
+  var p1 = ge3()
+  var p2 = ge3()
+
+  ge25519_p3_dbl(p1, p3);
+  ge25519_p1p1_to_p2(p2, p1);
+  ge25519_p2_dbl(p1, p2);
+  ge25519_p1p1_to_p2(p2, p1);
+  ge25519_p2_dbl(p1, p2);
+  ge25519_p1p1_to_p3(p3, p1);
+}
+
+function ge25519_elligator2(x, y, r, was_square_p) {
+  check_fe(x)
+  check_fe(y)
+  check_fe(r)
+  assert(typeof was_square_p === 'number')
+ 
+  var e = fe25519()
+  var gx1 = fe25519()
+  var rr2 = fe25519()
+  var x2 = fe25519()
+  var x3 = fe25519()
+  var negx = fe25519()
+
+  var s = Buffer.alloc(32)
+  var was_square = 0
+
+  fe25519_sq2(rr2, r);
+  rr2[0]++;
+  fe25519_invert(rr2, rr2);
+  fe25519_mul32(x, rr2, ed25519_A_32);
+  fe25519_neg(x, x); /* x=x1 */
+
+  fe25519_sq(x2, x);
+  fe25519_mul(x3, x, x2);
+  fe25519_mul32(x2, x2, ed25519_A_32); /* x2 = A*x1^2 */
+  fe25519_add(gx1, x3, x);
+  fe25519_add(gx1, gx1, x2); /* gx1 = x1^3 + A*x1^2 + x1 */
+
+  chi25519(e, gx1);
+  fe25519_tobytes(s, e);
+  was_square = s[1] & 1;
+
+  /* e=-1 => x = -x1-A */
+  fe25519_neg(negx, x);
+  fe25519_cmov(x, negx, was_square);
+  fe25519_0(x2);
+  fe25519_cmov(x2, ed25519_A, was_square);
+  fe25519_sub(x, x, x2);
+
+  /* y = sqrt(gx1) or sqrt(gx2) with gx2 = gx1 * (A+x1) / -x1 */
+  /* but it is about as fast to just recompute from the curve equation. */
+  assert(ge25519_xmont_to_ymont(y, x) === 0)
+  return was_square
+}
+
+function ge25519_from_uniform(s, r) {
+  assert(s instanceof Uint8Array && s.length === 32)
+  assert(r instanceof Uint8Array && r.length === 32)
+
+  var p3 = ge3()
+  var x = fe25519()
+  var y = fe25519()
+  var negxed = fe25519()
+  var r_fe = fe25519()
+  var was_square = 0
+  var x_sign = 0
+
+  s.set(r, 32)
+  x_sign = s[31] >> 7;
+  s[31] &= 0x7f;
+  fe25519_frombytes(r_fe, s);
+
+  ge25519_elligator2(x, y, r_fe, was_square);
+
+  ge25519_mont_to_ed(p3[0], p3[2], x, y);
+  fe25519_neg(negxed, p3[0]);
+  fe25519_cmov(p3[0], negxed, fe25519_isnegative(p3[0]) ^ x_sign);
+
+  fe25519_1(p3[2]);
+  fe25519_mul(p3[3], p3[0], p3[2]);
+  ge25519_clear_cofactor(p3);
+  ge25519_p3_tobytes(s, p3);
+}
+
+function ge25519_from_hash(s, h) {
+  assert(s instanceof Uint8Array && s.length === 32)
+  assert(h instanceof Uint8Array && h.length === 64)
+
+  var fl = Buffer.alloc(32)
+  var gl = Buffer.alloc(32)
+  var p3 = ge3()
+  var x = fe25519()
+  var y = fe25519()
+  var negy = fe25519()
+  var fe_f = fe25519()
+  var fe_g = fe25519()
+
+  var i = 0
+  var was_square = 0
+  var y_sign = 0
+
+  for (i = 0; i < 32; i++) {
+    fl[i] = h[63 - i];
+    gl[i] = h[31 - i];
+  }
+
+  fl[31] &= 0x7f;
+  gl[31] &= 0x7f;
+
+  fe25519_frombytes(fe_f, fl);
+  fe25519_frombytes(fe_g, gl);
+  fe_f[0] += (h[32] >> 7) * 19;
+  for (i = 0; i < 10; i++) {
+    fe_f[i] += 38 * fe_g[i];
+  }
+  fe25519_reduce(fe_f, fe_f);
+
+  ge25519_elligator2(x, y, fe_f, was_square);
+
+  y_sign = was_square
+  fe25519_neg(negy, y)
+  fe25519_cmov(y, negy, fe25519_isnegative(y) ^ y_sign)
+
+  ge25519_mont_to_ed(p3[0], p3[1], x, y)
+
+  fe25519_1(p3[2])
+  fe25519_mul(p3[3], p3[0], p3[1])
+  ge25519_clear_cofactor(p3)
+  ge25519_p3_tobytes(s, p3)
+}
+
+
+/* Ristretto group */
+
+function ristretto255_sqrt_ratio_m1 (x, u, v) {
+  check_fe(x)
+  check_fe(u)
+  check_fe(v)
+
+  var v3 = fe25519()
+  var vxx = fe25519()
+  var m_root_check = fe25519()
+  var p_root_check = fe25519()
+  var f_root_check = fe25519()
+  var x_sqrtm1 = fe25519()
+  var has_m_root = 0
+  var has_p_root = 0
+  var has_f_root = 0
+
+  fe25519_sq(v3, v);
+  fe25519_mul(v3, v3, v); /* v3 = v^3 */
+  fe25519_sq(x, v3);
+  fe25519_mul(x, x, v);
+  fe25519_mul(x, x, u); /* x = uv^7 */
+
+  fe25519_pow22523(x, x); /* x = (uv^7)^((q-5)/8) */
+  fe25519_mul(x, x, v3);
+  fe25519_mul(x, x, u); /* x = uv^3(uv^7)^((q-5)/8) */
+
+  fe25519_sq(vxx, x);
+  fe25519_mul(vxx, vxx, v); /* vx^2 */
+  fe25519_sub(m_root_check, vxx, u); /* vx^2-u */
+  fe25519_add(p_root_check, vxx, u); /* vx^2+u */
+  fe25519_mul(f_root_check, u, fe25519_sqrtm1); /* u*sqrt(-1) */
+  fe25519_add(f_root_check, vxx, f_root_check); /* vx^2+u*sqrt(-1) */
+  has_m_root = fe25519_iszero(m_root_check);
+  has_p_root = fe25519_iszero(p_root_check);
+  has_f_root = fe25519_iszero(f_root_check);
+  fe25519_mul(x_sqrtm1, x, fe25519_sqrtm1); /* x*sqrt(-1) */
+
+  fe25519_cmov(x, x_sqrtm1, has_p_root | has_f_root);
+  fe25519_abs(x, x);
+
+  return has_m_root | has_p_root;
+}
+
+function ristretto255_is_canonical (s) {
+  assert(s instanceof Uint8Array)
+
+  var c = 0
+  var d = 0
+  var e = 0
+  var i = 0
+
+  c = (s[31] & 0x7f) ^ 0x7f
+  for (i = 30; i > 0; i--) {
+    c |= s[i] ^ 0xff
+  }
+  c = (c - 1) >> 8
+  d = (0xed - 1 - s[0]) >> 8
+  e = s[31] >> 7
+
+  return 1 - (((c & d) | e | s[0]) & 1)
+}
+
+function ristretto255_frombytes (h, s) {
+  check_ge3(h)
+  assert(s instanceof Uint8Array)
+
+    var inv_sqrt = fe25519()
+    var one = fe25519()
+    var s_ = fe25519()
+    var ss = fe25519()
+    var u1 = fe25519()
+    var u2 = fe25519()
+    var u1u1 = fe25519()
+    var u2u2 = fe25519()
+    var v = fe25519()
+    var v_u2u2 = fe25519()
+    var was_square = 0
+
+    if (ristretto255_is_canonical(s) == 0) {
+      return -1;
+    }
+
+    fe25519_frombytes(s_, s);
+    fe25519_sq(ss, s_);                /* ss = s^2 */
+
+    fe25519_1(u1);
+    fe25519_sub(u1, u1, ss);           /* u1 = 1-ss */
+    fe25519_sq(u1u1, u1);              /* u1u1 = u1^2 */
+
+    fe25519_1(u2);
+    fe25519_add(u2, u2, ss);           /* u2 = 1+ss */
+    fe25519_sq(u2u2, u2);              /* u2u2 = u2^2 */
+
+    fe25519_mul(v, ed25519_d, u1u1);   /* v = d*u1^2 */
+    fe25519_neg(v, v);                 /* v = -d*u1^2 */
+    fe25519_sub(v, v, u2u2);           /* v = -(d*u1^2)-u2^2 */
+
+    fe25519_mul(v_u2u2, v, u2u2);      /* v_u2u2 = v*u2^2 */
+
+    fe25519_1(one);
+    was_square = ristretto255_sqrt_ratio_m1(inv_sqrt, one, v_u2u2);
+    fe25519_mul(h[0], inv_sqrt, u2);
+    fe25519_mul(h[1], inv_sqrt, h[0]);
+    fe25519_mul(h[1], h[1], v);
+
+    fe25519_mul(h[0], h[0], s_);
+    fe25519_add(h[0], h[0], h[0]);
+    fe25519_abs(h[0], h[0]);
+    fe25519_mul(h[1], u1, h[1]);
+    fe25519_1(h[2]);
+    fe25519_mul(h[3], h[0], h[1]);
+
+    return - ((1 - was_square) | fe25519_isnegative(h[3]) | fe25519_iszero(h[1]))
+}
+
+function ristretto255_p3_tobytes (s, h) {
+  check_ge3(h)
+  assert(s instanceof Uint8Array)
+
+  var den1 = fe25519()
+  var den2 = fe25519()
+  var den_inv = fe25519()
+  var eden = fe25519()
+  var inv_sqrt = fe25519()
+  var ix = fe25519()
+  var iy = fe25519()
+  var one = fe25519()
+  var s_ = fe25519()
+  var t_z_inv = fe25519()
+  var u1 = fe25519()
+  var u2 = fe25519()
+  var u1_u2u2 = fe25519()
+  var x_ = fe25519()
+  var y_ = fe25519()
+  var x_z_inv = fe25519()
+  var z_inv = fe25519()
+  var zmy = fe25519()
+  var rotate = 0
+
+  fe25519_add(u1, h[2], h[1]);       /* u1 = Z+Y */
+  fe25519_sub(zmy, h[2], h[1]);      /* zmy = Z-Y */
+  fe25519_mul(u1, u1, zmy);          /* u1 = (Z+Y)*(Z-Y) */
+  fe25519_mul(u2, h[0], h[1]);       /* u2 = X*Y */
+
+  fe25519_sq(u1_u2u2, u2);           /* u1_u2u2 = u2^2 */
+  fe25519_mul(u1_u2u2, u1, u1_u2u2); /* u1_u2u2 = u1*u2^2 */
+
+  fe25519_1(one);
+  ristretto255_sqrt_ratio_m1(inv_sqrt, one, u1_u2u2);
+  fe25519_mul(den1, inv_sqrt, u1);   /* den1 = inv_sqrt*u1 */
+  fe25519_mul(den2, inv_sqrt, u2);   /* den2 = inv_sqrt*u2 */
+  fe25519_mul(z_inv, den1, den2);    /* z_inv = den1*den2 */
+  fe25519_mul(z_inv, z_inv, h[3]);   /* z_inv = den1*den2*T */
+
+  fe25519_mul(ix, h[0], fe25519_sqrtm1);       /* ix = X*sqrt(-1) */
+  fe25519_mul(iy, h[1], fe25519_sqrtm1);       /* iy = Y*sqrt(-1) */
+  fe25519_mul(eden, den1, ed25519_invsqrtamd); /* eden = den1*sqrt(a-d) */
+
+  fe25519_mul(t_z_inv, h[3], z_inv); /* t_z_inv = T*z_inv */
+  rotate = fe25519_isnegative(t_z_inv);
+
+  fe25519_copy(x_, h[0]);
+  fe25519_copy(y_, h[1]);
+  fe25519_copy(den_inv, den2);
+
+  fe25519_cmov(x_, iy, rotate);
+  fe25519_cmov(y_, ix, rotate);
+  fe25519_cmov(den_inv, eden, rotate);
+
+  fe25519_mul(x_z_inv, x_, z_inv);
+  fe25519_cneg(y_, y_, fe25519_isnegative(x_z_inv));
+
+  fe25519_sub(s_, h[2], y_);
+  fe25519_mul(s_, den_inv, s_);
+  fe25519_abs(s_, s_);
+  fe25519_tobytes(s, s_);
+}
+
+function ristretto255_elligator (p, t) {
+  check_fe(t)
+  check_ge3(p)
+
+  var c = fe25519()
+  var n = fe25519()
+  var one = fe25519()
+  var r = fe25519()
+  var rpd = fe25519()
+  var s = fe25519()
+  var s_prime = fe25519()
+  var ss = fe25519()
+  var u = fe25519()
+  var v = fe25519()
+  var w0 = fe25519()
+  var w1 = fe25519()
+  var w2 = fe25519()
+  var w3 = fe25519()
+  var wasnt_square = 0
+
+  fe25519_1(one);
+  fe25519_sq(r, t);                  /* r = t^2 */
+  fe25519_mul(r, fe25519_sqrtm1, r); /* r = sqrt(-1)*t^2 */
+  fe25519_add(u, r, one);            /* u = r+1 */
+  fe25519_mul(u, u, ed25519_onemsqd);/* u = (r+1)*(1-d^2) */
+  fe25519_1(c);
+  fe25519_neg(c, c);                 /* c = -1 */
+  fe25519_add(rpd, r, ed25519_d);    /* rpd = r*d */
+  fe25519_mul(v, r, ed25519_d);      /* v = r*d */
+  fe25519_sub(v, c, v);              /* v = c-r*d */
+  fe25519_mul(v, v, rpd);            /* v = (c-r*d)*(r+d) */
+
+  wasnt_square = 1 - ristretto255_sqrt_ratio_m1(s, u, v);
+  fe25519_mul(s_prime, s, t);
+  fe25519_abs(s_prime, s_prime);
+  fe25519_neg(s_prime, s_prime);     /* s_prime = -|s*t| */
+  fe25519_cmov(s, s_prime, wasnt_square);
+  fe25519_cmov(c, r, wasnt_square);
+
+  fe25519_sub(n, r, one);            /* n = r-1 */
+  fe25519_mul(n, n, c);              /* n = c*(r-1) */
+  fe25519_mul(n, n, ed25519_sqdmone); /* n = c*(r-1)*(d-1)^2 */
+  fe25519_sub(n, n, v);              /* n =  c*(r-1)*(d-1)^2-v */
+
+  fe25519_add(w0, s, s);             /* w0 = 2s */
+  fe25519_mul(w0, w0, v);            /* w0 = 2s*v */
+  fe25519_mul(w1, n, ed25519_sqrtadm1); /* w1 = n*sqrt(ad-1) */
+  fe25519_sq(ss, s);                 /* ss = s^2 */
+  fe25519_sub(w2, one, ss);          /* w2 = 1-s^2 */
+  fe25519_add(w3, one, ss);          /* w3 = 1+s^2 */
+
+  fe25519_mul(p[0], w0, w3);
+  fe25519_mul(p[1], w2, w1);
+  fe25519_mul(p[2], w1, w3);
+  fe25519_mul(p[3], w0, w2);
+}
+
+function ristretto255_from_hash(s, h) {
+  assert(s instanceof Uint8Array && s.length === 32)
+  assert(h instanceof Uint8Array && h.length === 64)
+
+  var r0 = fe25519()
+  var r1 = fe25519()
+  var p1_cached = ge3()
+  var p_p1p1 = ge3()
+  var p0 = ge3()
+  var p1 = ge3()
+  var p = ge3()
+
+  fe25519_frombytes(r0, h);
+  fe25519_frombytes(r1, h.slice(32));
+  ristretto255_elligator(p0, r0);
+  ristretto255_elligator(p1, r1);
+  ge25519_p3_to_cached(p1_cached, p1);
+  ge25519_add_cached(p_p1p1, p0, p1_cached);
+  ge25519_p1p1_to_p3(p, p_p1p1);
+  ristretto255_p3_tobytes(s, p);
 }
 
 function check_fe (h) {

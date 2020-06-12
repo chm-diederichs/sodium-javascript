@@ -21,7 +21,7 @@ var gf = function(init) {
 
 // projective
 var ge2 = function(init) {
-  var r = new Array(4)
+  var r = new Array(3)
   for (let i = 0; i < 3; i++) r[i] = gf()
   return r;
 };
@@ -1080,36 +1080,37 @@ function mulL (r, A) {
   p3_to_cached(Ai[0], A)
   p3_dbl(t, A)
   p1p1_to_p3(A2, t)
-  ls_add(t, A2, Ai[0])
+  add(t, A2, Ai[0])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[1], u)
-  ls_add(t, A2, Ai[1])
+  add(t, A2, Ai[1])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[2], u)
-  ls_add(t, A2, Ai[2])
+  add(t, A2, Ai[2])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[3], u)
-  ls_add(t, A2, Ai[3])
+  add(t, A2, Ai[3])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[4], u)
-  ls_add(t, A2, Ai[4])
+  add(t, A2, Ai[4])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[5], u)
-  ls_add(t, A2, Ai[5])
+  add(t, A2, Ai[5])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[6], u)
-  ls_add(t, A2, Ai[6])
+  add(t, A2, Ai[6])
   p1p1_to_p3(u, t)
   p3_to_cached(Ai[7], u)
 
-  r = gf0
+  r[1][0] = 1
+  r[2][0] = 1
 
   for (let i = 252; i >= 0; i--) {
     p3_dbl(t, r)
 
     if (aslide[i] > 0) {
       p1p1_to_p3(u, t)
-      ls_add(t, u, Ai[intDivide(aslide[i], 2)])
+      add(t, u, Ai[intDivide(aslide[i], 2)])
     } else if (aslide[i] < 0) {
       p1p1_to_p3(u, t)
       sub(t, u, Ai[-intDivide(aslide[i], 2)])
@@ -1117,13 +1118,14 @@ function mulL (r, A) {
 
     p1p1_to_p3(r, t)
   }
+  console.log(r, 'end r')
 }
 
 function p3_to_cached (r, g) {
-  r[0] = A(g[1], g[0])
-  r[1] = Z(g[1], g[0])
+  A(r[0], g[1], g[0])
+  Z(r[1], g[1], g[0])
   r[2] = g[2]
-  r[3] = M(g[3], D2)
+  M(r[3], g[3], D2)
 }
 
 function p3_to_p2 (r, p) {
@@ -1136,11 +1138,17 @@ function p1p1_to_p3 (r, p) {
   M(r[0], p[0], p[3])
   M(r[1], p[1], p[2])
   M(r[2], p[2], p[3])
+}
+
+function p1p1_to_p3 (r, p) {
+  M(r[0], p[0], p[3])
+  M(r[1], p[1], p[2])
+  M(r[2], p[2], p[3])
   M(r[3], p[0], p[1])
 }
 
 function p3_dbl (r, p) {
-  var q = ge_p2()
+  var q = ge2()
   p3_to_p2(q, p)
   p2_dbl(r, q)
 }
@@ -1162,10 +1170,13 @@ function p2_dbl (r, p) {
 function is_on_main_subgroup (p) {
   var pl = ge3()
 
+  console.log('pre r')
   mulL(pl, p)
+  console.log(pl, 'pl')
 
   var zero = 0
   for (let i = 0; i < 16; i++) {
+    console.log(pl[0][i] & 0xffff)
     zero |= (pl[0][i] & 0xffff)
   }
 
@@ -1616,7 +1627,9 @@ function crypto_hash(out, m, n) {
   return 0;
 }
 
-function add(p, q) {
+function add(r, p, q) {
+  if (q === undefined) return add (r, r, p)
+
   var a = gf(), b = gf(), c = gf(),
       d = gf(), e = gf(), f = gf(),
       g = gf(), h = gf(), t = gf();
@@ -1636,10 +1649,10 @@ function add(p, q) {
   A(g, d, c);
   A(h, b, a);
 
-  M(p[0], e, f);
-  M(p[1], h, g);
-  M(p[2], g, f);
-  M(p[3], e, h);
+  M(r[0], e, f);
+  M(r[1], h, g);
+  M(r[2], g, f);
+  M(r[3], e, h);
 }
 
 function ls_add (r, p, q) {
@@ -1913,7 +1926,7 @@ function crypto_sign_ed25519_sk_to_pk (pk, sk) {
 }
 
 function crypto_sign_ed25519_sk_to_curve25519 (curveSk, edSk) {
-  check(curveSk, crypto_sign_SECRETKEYBYTES)
+  check(curveSk, crypto_scalarmult_BYTES)
   check(edSk, crypto_sign_ed25519_SECRETKEYBYTES)
 
   var h = Buffer.alloc(crypto_hash_sha512_BYTES);
@@ -1923,7 +1936,7 @@ function crypto_sign_ed25519_sk_to_curve25519 (curveSk, edSk) {
   h[31] &= 127;
   h[31] |= 64;
 
-  curveSk.set(edSk)
+  curveSk.set(h.subarray(0, crypto_scalarmult_BYTES))
   h.fill(0)
   return curveSk
 }
@@ -1937,10 +1950,18 @@ function crypto_sign_ed25519_pk_to_curve25519 (x25519_pk, ed25519_pk) {
   var x = gf()
   var one_minus_y = gf()
 
-  if (isSmallOrder(ed25519_pk) !== 0 ||
-      unpackneg(A, ed25519_pk) !== 0 ||
-      is_on_main_subgroup(A)   !==0) {
-      return -1
+  if (isSmallOrder(ed25519_pk) !== 0) {
+    console.log('small')
+    return -1
+  }
+  if (unpackneg(A, ed25519_pk) !== 0) {
+    console.log('neg')
+    return -1
+  }
+  if (is_on_main_subgroup(A)   !==0) {
+    console.log(A)
+    console.log('main')
+    return -1
   }
 
   one_minus_y = gf1
@@ -2073,7 +2094,8 @@ var crypto_secretbox_KEYBYTES = 32,
     crypto_sign_BYTES = crypto_sign_ed25519_BYTES,
     crypto_sign_PUBLICKEYBYTES = crypto_sign_ed25519_PUBLICKEYBYTES,
     crypto_sign_SECRETKEYBYTES = crypto_sign_ed25519_SECRETKEYBYTES,
-    crypto_sign_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES;
+    crypto_sign_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES,
+    crypto_hash_sha512_BYTES = 64;
 
 sodium.memzero = function (len, offset) {
   for (var i = offset; i < len; i++) arr[i] = 0;
@@ -2089,6 +2111,11 @@ sodium.crypto_sign = crypto_sign
 sodium.crypto_sign_open = crypto_sign_open
 sodium.crypto_sign_detached = crypto_sign_detached
 sodium.crypto_sign_verify_detached = crypto_sign_verify_detached
+sodium.crypto_sign_ed25519_sk_to_pk = crypto_sign_ed25519_sk_to_pk
+sodium.crypto_sign_ed25519_sk_to_curve25519 = crypto_sign_ed25519_sk_to_curve25519
+sodium.crypto_sign_ed25519_pk_to_curve25519 = crypto_sign_ed25519_pk_to_curve25519
+
+sodium.crypto_hash_sha512_BYTES = crypto_hash_sha512_BYTES
 
 forward(require('./crypto_generichash'))
 forward(require('./crypto_kdf'))
@@ -2121,6 +2148,10 @@ sodium.crypto_sign_ed25519_BYTES = crypto_sign_ed25519_BYTES
 sodium.crypto_sign_ed25519_PUBLICKEYBYTES = crypto_sign_ed25519_PUBLICKEYBYTES
 sodium.crypto_sign_ed25519_SECRETKEYBYTES = crypto_sign_ed25519_SECRETKEYBYTES
 sodium.crypto_sign_ed25519_SEEDBYTES = crypto_sign_ed25519_SEEDBYTES
+
+sodium.pack = pack25519
+sodium.unpack25519 = unpack25519
+sodium.inv25519 = inv25519
 
 sodium.sodium_malloc = function (n) {
   return new Uint8Array(n)
