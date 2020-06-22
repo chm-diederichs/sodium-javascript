@@ -253,8 +253,8 @@ function fe25519_frombytes (h, s) {
   var h3_ = load_3(s, 10) >>> 13
   var h4  = (load_3(s, 13) << 2) & 0xffff
   var h4_ = load_3(s, 13) >>> 14
-  var h5  = (load_4(s, 16) & 0xffff) 
-  var h5_ = load_4(s, 16) & 0xffff
+  var h5  = load_4(s, 16) & 0xffff
+  var h5_ = load_4(s, 16) >> 16
   var h6  = (load_3(s, 20) << 7) & 0xffff
   var h6_ = load_3(s, 20) >>> 9
   var h7  = (load_3(s, 23) << 5) & 0xffff
@@ -263,8 +263,6 @@ function fe25519_frombytes (h, s) {
   var h8_ = load_3(s, 26) >>> 12
   var h9  = ((load_3(s, 29)) << 2) & 0xffff
   var h9_ = (load_3(s, 29) & 8388607) >>> 14
-
-  // console.log([s[0], s[1], s[2], s[3]].map(a => a.toString(16)))node
 
   var carry
   var carry0
@@ -278,11 +276,6 @@ function fe25519_frombytes (h, s) {
   var carry8
   var carry9
 
-  // console.log('\nh0 _____________________________________')
-
-  // console.log(signedInt(h0).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h0_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h0 + (h0_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
   carry9 = (h9_ + (1 << 8)) >> 9
   h9_ -= carry9 * (1 << 9)
@@ -291,32 +284,12 @@ function fe25519_frombytes (h, s) {
   h0_ += carry
   h0 -= carry * (1 << 16)
 
-  // console.log(signedInt(h0).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h0_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h0 + (h0_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  // console.log('\nh2 _____________________________________')
-
-  // console.log(signedInt(h2).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h2_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h2 + (h2_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
   carry1 = (h1_ + (1 << 8)) >> 9
   h1_ -= carry1 * (1 << 9)
   h2 += carry1
   carry = (h2 + (1 << 15)) >> 16
   h2_ += carry
   h2 -= carry * (1 << 16)
-
-  // console.log(signedInt(h2).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h2_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h2 + (h2_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  // console.log('\nh4 _____________________________________')
-
-  // console.log(signedInt(h4).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h4_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h4 + (h4_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
   carry3 = (h3_ + (1 << 8)) >> 9
   h3_ -= carry3 * (1 << 9)
@@ -325,37 +298,12 @@ function fe25519_frombytes (h, s) {
   h4_ += carry
   h4 -= carry * (1 << 16)
 
-  // console.log(signedInt(h4).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h4_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h4 + (h4_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  // console.log('\nh6 _____________________________________')
-
-  // console.log(signedInt(h5).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5 + (h5_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  // console.log(signedInt(h6).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h6_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h6 + (h6_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
   carry5 = (h5_ + (1 << 8)) >> 9
   h5_ -= carry5 * (1 << 9)
   h6 += carry5
-  // console.log(signedInt(carry5).toString(16).padStart(8, '0'))
-  // carry = (h6 + (1 << 15)) >> 16
-  // h6_ += carry
+  carry = (h6 + (1 << 15)) >> 16
+  h6_ += carry
   h6 -= carry * (1 << 16)
-
-  // console.log(signedInt(h6).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h6_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h6 + (h6_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  // console.log('\nh8 _____________________________________')
-
-  // console.log(signedInt(h8).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h8_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h8 + (h8_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
   carry7 = (h7_ + (1 << 8)) >> 9
   h7_ -= carry7 * (1 << 9)
@@ -364,99 +312,41 @@ function fe25519_frombytes (h, s) {
   h8_ += carry
   h8 -= carry * (1 << 16)
 
-  // console.log(signedInt(h8).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h8_ * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h8 + (h8_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  
 
-  // console.log(carry5.toString(16))
-  // console.log(h6.toString(16))
-  // console.log((((h0 + (1 << 25)) / 2) >>> 25).toString(16))
-  // console.log('\nh1 _____________________________________')
-
-  // console.log(signedInt(h1).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h1 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h1 + (h1_ * 2 ** 16)).toString(16).padStart(8, '0'))
   carry0 = (h0_ + (1 << 9)) >>> 10
   h0_ -= carry0 * (1 << 10)
   h1 += carry0
   carry = (h1 + (1 << 15)) >>> 16
   h1_ += carry
   h1 -= carry * (1 << 16)
-  // console.log(signedInt(h1).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h1 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h1 + (h1_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
-  // console.log('\nh3 _____________________________________')
-
-  // console.log(signedInt(h3).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h3 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h3 + (h3_ * 2 ** 16)).toString(16).padStart(8, '0'))
   carry2 = (h2_ + (1 << 9)) >>> 10
   h2_ -= carry2 * (1 << 10)
   h3 += carry2
   carry = (h3 + (1 << 15)) >>> 16
   h3_ += carry
   h3 -= carry * (1 << 16)
-  // console.log(signedInt(h3).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h3 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h3 + (h3_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
-  // console.log('\nh5 _____________________________________')
-
-  // console.log(signedInt(h5).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5 + (h5_ * 2 ** 16)).toString(16).padStart(8, '0'))
   carry4 = (h4_ + (1 << 9)) >>> 10
   h4_ -= carry4 * (1 << 10)
   h5 += carry4
   carry = (h5 + (1 << 15)) >>> 16
   h5_ += carry
   h5 -= carry * (1 << 16)
-  // console.log(signedInt(h5).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h5 + (h5_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
-  // console.log('\nh7 _____________________________________')
-
-  // console.log(signedInt(h7).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h7 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h7 + (h7_ * 2 ** 16)).toString(16).padStart(8, '0'))
   carry6 = (h6_ + (1 << 9)) >>> 10
   h6_ -= carry6 * (1 << 10)
   h7 += carry6
   carry = (h7 + (1 << 15)) >>> 16
   h7_ += carry
   h7 -= carry * (1 << 16)
-  // console.log(signedInt(h7).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h7 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h7 + (h7_ * 2 ** 16)).toString(16).padStart(8, '0'))
 
-  // console.log('\nh9 _____________________________________')
-
-  // console.log(signedInt(h9).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h9 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h9 + (h9_ * 2 ** 16)).toString(16).padStart(8, '0'))
   carry8 = (h8_ + (1 << 9)) >>> 10
   h8_ -= carry8 * (1 << 10)
   h9 += carry8
   carry = (h9 + (1 << 15)) >>> 16
   h9_ += carry
   h9 -= carry * (1 << 16)
-  // console.log(signedInt(h9).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h9 * 2 ** 16).toString(16).padStart(8, '0'))
-  // console.log(signedInt(h9 + (h9_ * 2 ** 16)).toString(16).padStart(8, '0'))
-
-  console.log('h0:', signedInt(h0 + (h0_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h1:', signedInt(h1 + (h1_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h2:', signedInt(h2 + (h2_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h3:', signedInt(h3 + (h3_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h4:', signedInt(h4 + (h4_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h5:', signedInt(h5 + (h5_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h6:', signedInt(h6 + (h6_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h7:', signedInt(h7 + (h7_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h8:', signedInt(h8 + (h8_ * 2 ** 16)).toString(16).padStart(8, '0'))
-  console.log('h9:', signedInt(h9 + (h9_ * 2 ** 16)).toString(16).padStart(8, '0'))  
 
   h[0] = h0 + (h0_ << 16)
   h[1] = h1 + (h1_ << 16)
@@ -796,6 +686,9 @@ function fe25519_mul (h, f, g) {
   check_fe(h)
   check_fe(f)
   check_fe(g)
+
+  // printFe(f, 'f')
+  // printFe(g, 'g')
 
   var fbuf = Buffer.from(f.buffer)
   var gbuf = Buffer.from(g.buffer)
@@ -2774,4 +2667,9 @@ function intDivide (a, b) {
 
 function signedInt (i) {
   return i < 0 ? 2 ** 32 + i : i
+}
+
+function printFe (a, name) {
+  console.log('\n' + name + ' __________')
+  for (let i = 0; i < 10; i++) console.log(`a${i}:`, signedInt(a[i]).toString(16).padStart(8, '0'))
 }
