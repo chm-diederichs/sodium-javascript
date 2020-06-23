@@ -14,6 +14,7 @@ const wasm = require('./fe25519_25/mult.js')({
   }
 })
 
+const base = require('./fe25519_25/base.json').map(a => a.map(b => ge2(b)))
 const printbuf =Buffer.alloc(32)
 
 module.exports = {
@@ -45,6 +46,8 @@ module.exports = {
   ge25519_frombytes,
   ge25519_p3_tobytes,
   ge25519_p3_dbl,
+  ge25519_scalarmult,
+  ge25519_scalarmult_base,
   sc25519_mul,
   sc25519_muladd,
   sc25519_sq,
@@ -85,11 +88,13 @@ const ed25519_sqrtam2 = fe25519([
 ])
 
 function print_ge (g, n = 4) {
+  console.log('__________\n')
   for (let i = 0; i < n; i++) for (let j = 0; j <10; j++) console.log(`g[${i}][${j}]:`, signedInt(g[i][j]).toString(16).padStart(8, '0'))
 }
 
 function print_fe (f) {
   for (let j = 0; j <10; j++) console.log(`f[${j}]:`, signedInt(f[j]).toString(16).padStart(8, '0'))
+  console.log('__________\n')
   console.log('__________\n')
 }
 
@@ -105,7 +110,7 @@ function fe25519 (arr) {
 }
 
 // projective
-var ge2 = function (init) {
+function ge2 (init) {
   var r = new Array(3)
   const inlen = init ? init.length : 0
 
@@ -1404,7 +1409,7 @@ function negative (b) {
   /* 18446744073709551361..18446744073709551615: yes; 0..255: no */
   var x = b & 0xffffffff
 
-  x >>= 31 /* 1: yes; 0: no */
+  x >>>= 31 /* 1: yes; 0: no */
 
   return x
 }
@@ -1433,6 +1438,7 @@ function ge25519_cmov_cached (t, u, b) {
 
 function ge25519_cmov8 (t, precomp, b) {
   check_ge2(t)
+  // for (let i = 0; i < 8; i++) print_ge(precomp[i], 3)
   assert(precomp.length === 8)
   for (let i = 0; i < 8; i++) check_ge2(precomp[i])
 
@@ -1455,6 +1461,11 @@ function ge25519_cmov8 (t, precomp, b) {
   ge25519_cmov(t, minust, bnegative)
 }
 
+function ge25519_cmov8_base(t, pos, b) {
+  check_ge2(t)
+  ge25519_cmov8(t, base[pos], b)
+}
+
 // function ge25519_cmov8_base(t, pos, b) {
 //   check_ge2(t)
 
@@ -1467,7 +1478,7 @@ function ge25519_cmov8 (t, precomp, b) {
 function ge25519_cmov8_cached (t, cached, b) {
   check_ge3(t)
   assert(cached.length === 8)
-  for (let i = 0; i < 8; i++) check_ge2(cached[i])
+  for (let i = 0; i < 8; i++) check_ge3(cached[i])
 
   var minust = ge3()
   var bnegative = negative(b)
@@ -1761,7 +1772,7 @@ function ge25519_scalarmult_base (h, a) {
   var carry = new Int8Array(1)
   var r = ge3()
   var s = ge2()
-  var t = ge3()
+  var t = ge2()
 
   for (i = 0; i < 32; ++i) {
     e[2 * i + 0] = (a[i] >> 0) & 15
@@ -1783,7 +1794,7 @@ function ge25519_scalarmult_base (h, a) {
   ge25519_p3_0(h)
 
   for (i = 1; i < 64; i += 2) {
-    ge25519_cmov8_base(t, i / 2, e[i])
+    ge25519_cmov8_base(t, intDivide(i, 2), e[i])
     ge25519_madd(r, h, t)
     ge25519_p1p1_to_p3(h, r)
   }
@@ -1798,71 +1809,11 @@ function ge25519_scalarmult_base (h, a) {
   ge25519_p1p1_to_p3(h, r)
 
   for (i = 0; i < 64; i += 2) {
-    ge25519_cmov8_base(t, i / 2, e[i])
+    ge25519_cmov8_base(t, intDivide(i, 2), e[i])
     ge25519_madd(r, h, t)
     ge25519_p1p1_to_p3(h, r)
   }
 }
-
-/* multiply by the order of the main subgroup l = 2^252+27742317777372353535851937790883648493 */
-// module.exports.ge25519_mul_l = ge25519_mul_l = function (r, A) {
-//   check_ge3(r)
-//   check_ge3(A)
-
-//   var aslide = Int8Array.from([
-//     13, 0, 0, 0, 0, -1, 0, 0, 0, 0, -11, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, -3, 0, 0, 0, 0, -13, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, -13, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, -13, 0, 0, 0, 0, 0, 0, -3, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 3, 0, 0, 0, 0, -11, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 7, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-//   ])
-
-//   var Ai = new Array(8) /* A,3A,5A,7A,9A,11A,13A,15A */
-//   for (let i = 0; i < 8; i++) Ai[i] = ge3()
-
-//   var t = ge3()
-//   var u = ge3()
-//   var A2 = ge3()
-
-//   ge25519_p3_tobytes(printbuf, A)
-//   console.log(printbuf.toString('hex'))
-//   ge25519_p3_to_cached(Ai[0], A)
-//   ge25519_p3_dbl(t, A)
-//   ge25519_p1p1_to_p3(A2, t)
-//   ge25519_add(t, A2, Ai[0])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[1], u)
-//   ge25519_add(t, A2, Ai[1])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[2], u)
-//   ge25519_add(t, A2, Ai[2])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[3], u)
-//   ge25519_add(t, A2, Ai[3])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[4], u)
-//   ge25519_add(t, A2, Ai[4])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[5], u)
-//   ge25519_add(t, A2, Ai[5])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[6], u)
-//   ge25519_add(t, A2, Ai[6])
-//   ge25519_p1p1_to_p3(u, t)
-//   ge25519_p3_to_cached(Ai[7], u)
-
-//   ge25519_p3_0(r)
-
-//   for (i = 252; i >= 0; --i) {
-//     ge25519_p3_dbl(t, r)
-
-//     if (aslide[i] > 0) {
-//       ge25519_p1p1_to_p3(u, t)
-//       ge25519_add(t, u, Ai[intDivide(aslide[i], 2)])
-//     } else if (aslide[i] < 0) {
-//       ge25519_p1p1_to_p3(u, t)
-//       ge25519_sub(t, u, Ai[-intDivide(aslide[i], 2)])
-//     }
-
-//     ge25519_p1p1_to_p3(r, t)
-//   }
-// }
 
 /* multiply by the order of the main subgroup l = 2^252+27742317777372353535851937790883648493 */
 function ge25519_mul_l (r, p) {

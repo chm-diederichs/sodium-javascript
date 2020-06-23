@@ -162,6 +162,14 @@ ec.ge25519_mul_l(gf, ge)
 ec.ge25519_p3_tobytes(res, gf);
 console.log("mul_l :", res.toString('hex'))
 
+ec.ge25519_scalarmult_base(gf, cn)
+ec.ge25519_p3_tobytes(res, gf);
+console.log("smultb:", res.toString('hex'))
+
+ec.ge25519_scalarmult(ge, bn, gf)
+ec.ge25519_p3_tobytes(res, ge);
+console.log("smult :", res.toString('hex'))
+
 console.log('canon :', ec.sc25519_is_canonical(bn))
 
 /////////////////////////////////////////////////////

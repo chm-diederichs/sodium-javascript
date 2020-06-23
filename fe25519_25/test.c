@@ -103,7 +103,7 @@ void print_ge(const ge25519_p3* g) {
     for (i = 0; i < 10; i++) printf("T[%d]: %08x\n", i, g->T[i]);
 }
 
-void print_ge2(const ge25519_p3* g) {
+void print_ge2(const ge25519_p2* g) {
     int i;
 
     printf("\nge _____________\n");
@@ -3463,6 +3463,7 @@ ge25519_cmov8(ge25519_precomp *t, const ge25519_precomp precomp[8], const signed
     const unsigned char bnegative = negative(b);
     const unsigned char babs      = b - (((-bnegative) & b) * ((signed char) 1 << 1));
 
+    // printf("babs: %d\nb: %d\nbneg: %d\n", babs, b, bnegative);
     ge25519_precomp_0(t);
     ge25519_cmov(t, &precomp[0], equal(babs, 1));
     ge25519_cmov(t, &precomp[1], equal(babs, 2));
@@ -4074,6 +4075,16 @@ int main (int argc, char   *argv[]) {
     ge25519_p3_tobytes(res, &gf);
     bin2hex(hex, sizeof hex, res, sizeof res);
     printf("mul_l : %s \n", hex);
+
+    ge25519_scalarmult_base(&gf, c);
+    ge25519_p3_tobytes(res, &gf);
+    bin2hex(hex, sizeof hex, res, sizeof res);
+    printf("smultb: %s \n", hex);
+
+    ge25519_scalarmult(&ge, b, &gf);
+    ge25519_p3_tobytes(res, &ge);
+    bin2hex(hex, sizeof hex, res, sizeof res);
+    printf("smult : %s \n", hex);
 
     int canon = sc25519_is_canonical(b);
     printf("canon:  %d\n", canon);
