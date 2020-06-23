@@ -44,6 +44,7 @@ module.exports = {
   ge25519_has_small_order,
   ge25519_frombytes,
   ge25519_p3_tobytes,
+  ge25519_p3_dbl,
   sc25519_mul,
   sc25519_muladd,
   sc25519_sq,
@@ -83,8 +84,8 @@ const ed25519_sqrtam2 = fe25519([
   -12222970, -8312128, -11511410, 9067497, -15300785, -241793, 25456130, 14121551, -12187136, 3972024
 ])
 
-function print_ge (g) {
-  for (let i = 0; i < 4; i++) for (let j = 0; j <10; j++) console.log(`g[${i}][${j}]:`, signedInt(g[i][j]).toString(16).padStart(8, '0'))
+function print_ge (g, n = 4) {
+  for (let i = 0; i < n; i++) for (let j = 0; j <10; j++) console.log(`g[${i}][${j}]:`, signedInt(g[i][j]).toString(16).padStart(8, '0'))
 }
 
 function print_fe (f) {
@@ -737,8 +738,6 @@ function fe25519_sq (h, f, log) {
   check_fe(h)
   check_fe(f)
 
-  if (log) print_fe(f)
-
   var buf = Buffer.from(f.buffer)
 
   wasm.memory.set(buf)
@@ -1066,9 +1065,7 @@ function ge25519_frombytes (h, s) {
   fe25519_sq(u, h[1])
   fe25519_mul(v, u, ed25519_d)
   fe25519_sub(u, u, h[2]) /* u = y^2-1 */
-  print_fe(u)
   fe25519_add(v, v, h[2]) /* v = dy^2+1 */
-  print_fe(v)
 
   fe25519_sq(v3, v)
   fe25519_mul(v3, v3, v) /* v3 = v^3 */
@@ -1234,13 +1231,13 @@ function ge25519_p2_dbl (r, p) {
   var t0 = fe25519()
 
   fe25519_sq(r[0], p[0])
-  fe25519_sq(r[2], p[2])
+  fe25519_sq(r[2], p[1])
   fe25519_sq2(r[3], p[2])
-  fe25519_add(r[2], p[0], p[2])
-  fe25519_sq(t0, r[2])
-  fe25519_add(r[2], r[2], r[0])
+  fe25519_add(r[1], p[0], p[1])
+  fe25519_sq(t0, r[1])
+  fe25519_add(r[1], r[2], r[0])
   fe25519_sub(r[2], r[2], r[0])
-  fe25519_sub(r[0], t0, r[2])
+  fe25519_sub(r[0], t0, r[1])
   fe25519_sub(r[3], r[3], r[2])
 }
 
@@ -1344,6 +1341,7 @@ function ge25519_precomp_0 (h) {
 /* r = 2p */
 function ge25519_p3p3_dbl (r, p) {
   check_ge3(r)
+  check_ge3(p)
   var p1p1 = ge3()
 
   ge25519_p3_dbl(p1p1, p)
@@ -1353,7 +1351,7 @@ function ge25519_p3p3_dbl (r, p) {
 /* r = p+q */
 function ge25519_p3_add (r, p, q) {
   check_ge3(r)
-  check_ge3(r)
+  check_ge3(p)
   check_ge3(q)
 
   var q_cached = ge3()
@@ -2844,9 +2842,4 @@ function intDivide (a, b) {
 
 function signedInt (i) {
   return i < 0 ? 2 ** 32 + i : i
-}
-
-function printFe (a, name) {
-  console.log('\n' + name + ' __________')
-  for (let i = 0; i < 10; i++) console.log(`a${i}:`, signedInt(a[i]).toString(16).padStart(8, '0'))
 }
