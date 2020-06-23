@@ -1382,10 +1382,10 @@
     ;; |h1| <= (1.65*1.65*2^51*(1+1+19+19+19+19+19+19+19+19))
     ;; i.e. |h1| <= 1.7*2^59; narrower ranges for h3, h5, h7, h9    
 
-    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h1 (i64.add (get_local $h1) (get_local $carry0)))
     (set_local $h0 (i64.sub (get_local $h0) (i64.mul (get_local $carry0) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h5 (i64.add (get_local $h5) (get_local $carry4)))
     (set_local $h4 (i64.sub (get_local $h4) (i64.mul (get_local $carry4) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1394,10 +1394,10 @@
     ;; /* |h1| <= 1.71*2^59 */
     ;; /* |h5| <= 1.71*2^59 */
 
-    (set_local $carry1 (i64.shr_s (i64.add (get_local $h1) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry1 (i64.shr_s (i64.add (get_local $h1) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h2 (i64.add (get_local $h2) (get_local $carry1)))
     (set_local $h1 (i64.sub (get_local $h1) (i64.mul (get_local $carry1) (i64.shl (i64.const 1) (i64.const 25)))))
-    (set_local $carry5 (i64.shr_s (i64.add (get_local $h5) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry5 (i64.shr_s (i64.add (get_local $h5) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h6 (i64.add (get_local $h6) (get_local $carry5)))
     (set_local $h5 (i64.sub (get_local $h5) (i64.mul (get_local $carry5) (i64.shl (i64.const 1) (i64.const 25)))))
 
@@ -1406,10 +1406,10 @@
     ;; /* |h2| <= 1.41*2^60 */
     ;; /* |h6| <= 1.41*2^60 */
 
-    (set_local $carry2 (i64.shr_s (i64.add (get_local $h2) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry2 (i64.shr_s (i64.add (get_local $h2) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h3 (i64.add (get_local $h3) (get_local $carry2)))
     (set_local $h2 (i64.sub (get_local $h2) (i64.mul (get_local $carry2) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry6 (i64.shr_s (i64.add (get_local $h6) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry6 (i64.shr_s (i64.add (get_local $h6) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h7 (i64.add (get_local $h7) (get_local $carry6)))
     (set_local $h6 (i64.sub (get_local $h6) (i64.mul (get_local $carry6) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1418,10 +1418,10 @@
     ;; /* |h3| <= 1.71*2^59 */
     ;; /* |h7| <= 1.71*2^59 */
 
-    (set_local $carry3 (i64.shr_s (i64.add (get_local $h3) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry3 (i64.shr_s (i64.add (get_local $h3) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h4 (i64.add (get_local $h4) (get_local $carry3)))
     (set_local $h3 (i64.sub (get_local $h3) (i64.mul (get_local $carry3) (i64.shl (i64.const 1) (i64.const 25)))))
-    (set_local $carry7 (i64.shr_s (i64.add (get_local $h7) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry7 (i64.shr_s (i64.add (get_local $h7) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h8 (i64.add (get_local $h8) (get_local $carry7)))
     (set_local $h7 (i64.sub (get_local $h7) (i64.mul (get_local $carry7) (i64.shl (i64.const 1) (i64.const 25)))))
 
@@ -1430,10 +1430,10 @@
     ;; /* |h4| <= 1.72*2^34 */
     ;; /* |h8| <= 1.41*2^60 */
 
-    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h5 (i64.add (get_local $h5) (get_local $carry4)))
     (set_local $h4 (i64.sub (get_local $h4) (i64.mul (get_local $carry4) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry8 (i64.shr_s (i64.add (get_local $h8) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry8 (i64.shr_s (i64.add (get_local $h8) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h9 (i64.add (get_local $h9) (get_local $carry8)))
     (set_local $h8 (i64.sub (get_local $h8) (i64.mul (get_local $carry8) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1442,19 +1442,30 @@
     ;; /* |h5| <= 1.01*2^24 */
     ;; /* |h9| <= 1.71*2^59 */
 
-    (set_local $carry9 (i64.shr_s (i64.add (get_local $h9) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry9 (i64.shr_s (i64.add (get_local $h9) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h0 (i64.add (get_local $h0) (i64.mul (get_local $carry9) (i64.const 19))))
     (set_local $h9 (i64.sub (get_local $h9) (i64.mul (get_local $carry9) (i64.shl (i64.const 1) (i64.const 25)))))
 
     ;; /* |h9| <= 2^24; from now on fits into int32 unchanged */
     ;; /* |h0| <= 1.1*2^39 */
 
-    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h1 (i64.add (get_local $h1) (get_local $carry0)))
     (set_local $h0 (i64.sub (get_local $h0) (i64.mul (get_local $carry0) (i64.shl (i64.const 1) (i64.const 26)))))
 
     ;; /* |h0| <= 2^25; from now on fits into int32 unchanged */
     ;; /* |h1| <= 1.01*2^24 */
+
+    ;; (call $i64.log (get_local $h0))
+    ;; (call $i64.log (get_local $h1))
+    ;; (call $i64.log (get_local $h2))
+    ;; (call $i64.log (get_local $h3))
+    ;; (call $i64.log (get_local $h4))
+    ;; (call $i64.log (get_local $h5))
+    ;; (call $i64.log (get_local $h6))
+    ;; (call $i64.log (get_local $h7))
+    ;; (call $i64.log (get_local $h8))
+    ;; (call $i64.log (get_local $h9))
 
     (i64.store32 offset=0  (get_local $h) (get_local $h0))
     (i64.store32 offset=4  (get_local $h) (get_local $h1))
@@ -1924,10 +1935,10 @@
     ;; |h1| <= (1.65*1.65*2^51*(1+1+19+19+19+19+19+19+19+19))
     ;; i.e. |h1| <= 1.7*2^59; narrower ranges for h3, h5, h7, h9    
 
-    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h1 (i64.add (get_local $h1) (get_local $carry0)))
     (set_local $h0 (i64.sub (get_local $h0) (i64.mul (get_local $carry0) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h5 (i64.add (get_local $h5) (get_local $carry4)))
     (set_local $h4 (i64.sub (get_local $h4) (i64.mul (get_local $carry4) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1936,10 +1947,10 @@
     ;; /* |h1| <= 1.71*2^59 */
     ;; /* |h5| <= 1.71*2^59 */
 
-    (set_local $carry1 (i64.shr_s (i64.add (get_local $h1) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry1 (i64.shr_s (i64.add (get_local $h1) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h2 (i64.add (get_local $h2) (get_local $carry1)))
     (set_local $h1 (i64.sub (get_local $h1) (i64.mul (get_local $carry1) (i64.shl (i64.const 1) (i64.const 25)))))
-    (set_local $carry5 (i64.shr_s (i64.add (get_local $h5) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry5 (i64.shr_s (i64.add (get_local $h5) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h6 (i64.add (get_local $h6) (get_local $carry5)))
     (set_local $h5 (i64.sub (get_local $h5) (i64.mul (get_local $carry5) (i64.shl (i64.const 1) (i64.const 25)))))
 
@@ -1948,10 +1959,10 @@
     ;; /* |h2| <= 1.41*2^60 */
     ;; /* |h6| <= 1.41*2^60 */
 
-    (set_local $carry2 (i64.shr_s (i64.add (get_local $h2) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry2 (i64.shr_s (i64.add (get_local $h2) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h3 (i64.add (get_local $h3) (get_local $carry2)))
     (set_local $h2 (i64.sub (get_local $h2) (i64.mul (get_local $carry2) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry6 (i64.shr_s (i64.add (get_local $h6) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry6 (i64.shr_s (i64.add (get_local $h6) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h7 (i64.add (get_local $h7) (get_local $carry6)))
     (set_local $h6 (i64.sub (get_local $h6) (i64.mul (get_local $carry6) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1960,10 +1971,10 @@
     ;; /* |h3| <= 1.71*2^59 */
     ;; /* |h7| <= 1.71*2^59 */
 
-    (set_local $carry3 (i64.shr_s (i64.add (get_local $h3) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry3 (i64.shr_s (i64.add (get_local $h3) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h4 (i64.add (get_local $h4) (get_local $carry3)))
     (set_local $h3 (i64.sub (get_local $h3) (i64.mul (get_local $carry3) (i64.shl (i64.const 1) (i64.const 25)))))
-    (set_local $carry7 (i64.shr_s (i64.add (get_local $h7) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry7 (i64.shr_s (i64.add (get_local $h7) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h8 (i64.add (get_local $h8) (get_local $carry7)))
     (set_local $h7 (i64.sub (get_local $h7) (i64.mul (get_local $carry7) (i64.shl (i64.const 1) (i64.const 25)))))
 
@@ -1972,10 +1983,10 @@
     ;; /* |h4| <= 1.72*2^34 */
     ;; /* |h8| <= 1.41*2^60 */
 
-    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry4 (i64.shr_s (i64.add (get_local $h4) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h5 (i64.add (get_local $h5) (get_local $carry4)))
     (set_local $h4 (i64.sub (get_local $h4) (i64.mul (get_local $carry4) (i64.shl (i64.const 1) (i64.const 26)))))
-    (set_local $carry8 (i64.shr_s (i64.add (get_local $h8) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry8 (i64.shr_s (i64.add (get_local $h8) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h9 (i64.add (get_local $h9) (get_local $carry8)))
     (set_local $h8 (i64.sub (get_local $h8) (i64.mul (get_local $carry8) (i64.shl (i64.const 1) (i64.const 26)))))
 
@@ -1984,14 +1995,14 @@
     ;; /* |h5| <= 1.01*2^24 */
     ;; /* |h9| <= 1.71*2^59 */
 
-    (set_local $carry9 (i64.shr_s (i64.add (get_local $h9) (i64.shl (i64.const 1) (i64.const 24)) (i64.const 25))))
+    (set_local $carry9 (i64.shr_s (i64.add (get_local $h9) (i64.shl (i64.const 1) (i64.const 24))) (i64.const 25)))
     (set_local $h0 (i64.add (get_local $h0) (i64.mul (get_local $carry9) (i64.const 19))))
     (set_local $h9 (i64.sub (get_local $h9) (i64.mul (get_local $carry9) (i64.shl (i64.const 1) (i64.const 25)))))
 
     ;; /* |h9| <= 2^24; from now on fits into int32 unchanged */
     ;; /* |h0| <= 1.1*2^39 */
 
-    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25)) (i64.const 26))))
+    (set_local $carry0 (i64.shr_s (i64.add (get_local $h0) (i64.shl (i64.const 1) (i64.const 25))) (i64.const 26)))
     (set_local $h1 (i64.add (get_local $h1) (get_local $carry0)))
     (set_local $h0 (i64.sub (get_local $h0) (i64.mul (get_local $carry0) (i64.shl (i64.const 1) (i64.const 26)))))
 
